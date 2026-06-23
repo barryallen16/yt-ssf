@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>yt-ssf Search</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+  </head>
+
+  <script type="module">
+    import { Meilisearch } from "https://www.unpkg.com/meilisearch";
+
+    const client = new Meilisearch({
+      host: "http://localhost:7700", // Added http:// for browser compatibility
+      apiKey: "barryallen@16",
+    });
+
+    const index = client.index("yt-ssf");
+
+    const searchInput = document.getElementById("searchInput");
+    const resultsContainer = document.getElementById("resultsContainer");
+
+    // Main search function (called on input change)
+    async function searchIndex(query) {
+      if (!query) {
+        resultsContainer.innerHTML = "";
+        return;
+      }
+
+      try {
+        // Perform the search
+        const response = await index.search(query);
+
+        // Render the results
+        renderResults(response.hits);
+        console.log(response.hits);
+      } catch (error) {
+        console.error("Meilisearch Error:", error);
+        resultsContainer.innerHTML = `<p class="text-red-500 text-center col-span-full">Error connecting to search engine.</p>`;
+      }
+    }
+
+    // Function to render the hits into the grid
+    function renderResults(hits) {
+      if (hits.length === 0) {
+        resultsContainer.innerHTML = `<p class="text-neutral-500 text-center col-span-full py-10">No results found.</p>`;
+        return;
+      }
+
+      // Generate HTML for each hit
+      resultsContainer.innerHTML = hits
+        .map(
+          (hit) => `
+          <a href="https://youtube.com/watch?v=${hit.id}" target="_blank">
+        <div class="bg-[#1a1a1a] border border-neutral-800 rounded-lg p-5 hover:border-neutral-600 transition duration-150 ">
+          <h2 class="text-xl font-semibold text-white mb-2">
+            ${hit.title}
+          </h2>
+          <p class="text-neutral-400 text-sm line-clamp-3 mb-4">
+            ${JSON.stringify(hit).substring(0, 100) + "..."}
+          </p>
+          <div class="text-xs text-neutral-600 mt-auto pt-2 border-t border-neutral-800">
+            Channel: ${hit.uploader}
+          </div>
+          </div>
+          </a>
+      `,
+        )
+        .join("");
+    }
+
+    // Event listener: Search when the user types
+    searchInput.addEventListener("input", (e) => {
+      searchIndex(e.target.value);
+    });
+
+    window.addEventListener("load", () => {
+      const defaultQuery = ""; // Changed to empty to wait for user input
+      if (defaultQuery) {
+        searchInput.value = defaultQuery;
+        searchIndex(defaultQuery);
+      }
+    });
+  </script>
+
+  <body class="bg-[#070708] text-neutral-100 min-h-screen font-mono">
+    <div class="container mx-auto p-6 md:p-10">
+      <header class="mb-12 pb-8 flex items-center justify-center gap-4">
+        <img src="static/banner.png" class="" />
+      </header>
+
+      <div class="relative w-full max-w-2xl mx-auto mb-16">
+        <div
+          class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
+        >
+          <i class="fa fa-search text-neutral-500" aria-hidden="true"></i>
+        </div>
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search for videos, topics, or OnePlus..."
+          class="w-full bg-[#1a1a1a] border border-neutral-800 text-neutral-100 rounded-full py-4 pl-12 pr-6 text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+        />
+      </div>
+
+      <div id="resultsContainer" class="grid grid-cols-2 gap-6">
+        <p class="text-neutral-500 text-center col-span-full py-10">
+          Type above to search...
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

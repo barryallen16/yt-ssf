@@ -18,11 +18,12 @@ class IgnoreLogger:
 
 def extract_vid_info():
 
-    OUT_FILENAME = "extract.jsonl"
+    OUT_FILEPATH = "./output/extract.jsonl"
+    VIDEOIDS_FILEPATH = "./input/subs_feed_video_ids.txt"
     video_ids = []
     already_processed_videoids = set()
     try:
-        with open("./extract.jsonl", "r", encoding="utf-8") as in_file:
+        with open(OUT_FILEPATH, "r", encoding="utf-8") as in_file:
             for line in in_file:
                 if line.strip() and line.strip() not in already_processed_videoids:
                     data = json.loads(line)
@@ -33,7 +34,7 @@ def extract_vid_info():
 
     print(f"Found {len(already_processed_videoids)} already processed videoids")
 
-    with open("./subs_feed_video_ids.txt", "r", encoding="utf-16") as in_file:
+    with open(VIDEOIDS_FILEPATH, "r", encoding="utf-16") as in_file:
         for line in in_file:
             if line.strip() and line.strip() not in already_processed_videoids:
                 video_ids.append(line.strip())
@@ -59,7 +60,7 @@ def extract_vid_info():
                     "uploader": info.get("uploader", ""),
                     "description": info.get("description", ""),
                 }
-                with open(OUT_FILENAME, "a", encoding="utf-8") as out_file:
+                with open(OUT_FILEPATH, "a", encoding="utf-8") as out_file:
                     json.dump(result_dict, out_file, ensure_ascii=False)
                     out_file.write("\n")
             except (DownloadError, ExtractorError, Exception) as e:
