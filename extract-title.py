@@ -1,7 +1,7 @@
 import yt_dlp
 import json
 from tqdm import tqdm
-from yt_dlp.utils import DownloadError
+from yt_dlp.utils import DownloadError, ExtractorError
 
 
 def extract_vid_info():
@@ -26,9 +26,8 @@ def extract_vid_info():
     print(f"Processing {len(video_ids)} unprocessed video_ids")
     ydl_opts = {
         "extract_flat": True,
-        "ignore_warnings": True,
+        "no_warnings": True,
         "skip-download": True,
-        "ignoreerrors": True,
         "quiet": True,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -46,7 +45,7 @@ def extract_vid_info():
                 with open(OUT_FILENAME, "a", encoding="utf-8") as out_file:
                     json.dump(result_dict, out_file, ensure_ascii=False)
                     out_file.write("\n")
-            except DownloadError:
+            except (DownloadError, ExtractorError, Exception) as e:
                 tqdm.write(f"download error on video id {video_id}. skipping..")
                 video_ids.remove(video_id)
                 continue
