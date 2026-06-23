@@ -4,18 +4,32 @@ from tqdm import tqdm
 from yt_dlp.utils import DownloadError, ExtractorError
 
 
+class IgnoreLogger:
+    def error(msg):
+        pass
+
+    def warning(msg):
+        pass
+
+    def debug(msg):
+        pass
+
+
 def extract_vid_info():
 
     OUT_FILENAME = "extract.jsonl"
     video_ids = []
     already_processed_videoids = set()
+    try:
+        with open("./extract.jsonl", "r", encoding="utf-8") as in_file:
+            for line in in_file:
+                if line.strip() and line.strip() not in already_processed_videoids:
+                    data = json.loads(line)
+                    video_id = data["id"]
+                    already_processed_videoids.add(video_id)
+    except FileNotFoundError:
+        pass
 
-    with open("./extract.jsonl", "r", encoding="utf-8") as in_file:
-        for line in in_file:
-            if line.strip() and line.strip() not in already_processed_videoids:
-                data = json.loads(line)
-                video_id = data["id"]
-                already_processed_videoids.add(video_id)
     print(f"Found {len(already_processed_videoids)} already processed videoids")
 
     with open("./subs_feed_video_ids.txt", "r", encoding="utf-16") as in_file:
@@ -29,6 +43,7 @@ def extract_vid_info():
         "no_warnings": True,
         "skip-download": True,
         "quiet": True,
+        "logger": IgnoreLogger,
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         for video_id in tqdm(video_ids, desc="Processing video id", unit="video"):
@@ -46,7 +61,7 @@ def extract_vid_info():
                     json.dump(result_dict, out_file, ensure_ascii=False)
                     out_file.write("\n")
             except (DownloadError, ExtractorError, Exception) as e:
-                tqdm.write(f"download error on video id {video_id}. skipping..")
+                tqdm.write(f"download error on video id {video_id} - {str(e)}")
                 video_ids.remove(video_id)
                 continue
     print(f"Processed {len(video_ids)} video_ids and written results to {OUT_FILENAME}")
