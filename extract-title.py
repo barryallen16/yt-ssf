@@ -24,7 +24,13 @@ def extract_vid_info():
                 video_ids.append(line.strip())
 
     print(f"Processing {len(video_ids)} unprocessed video_ids")
-    ydl_opts = {"extract_flat": True, "ignore_warnings": True, "skip-download": True}
+    ydl_opts = {
+        "extract_flat": True,
+        "ignore_warnings": True,
+        "skip-download": True,
+        "ignoreerrors": True,
+        "quiet": True,
+    }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         for video_id in tqdm(video_ids, desc="Processing video id", unit="video"):
             try:
