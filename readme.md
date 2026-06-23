@@ -37,10 +37,10 @@ replace `barryallen@16` with your preferred masterkey .
 ```
 cd extraction-code\output
 curl ^
-  -X POST 'MEILISEARCH_URL/indexes/movies/documents?primaryKey=id' ^
-  -H 'Content-Type: application/x-ndjson' ^
-  -H 'Authorization: Bearer barryallen@16' ^
-  --data-binary @extract.json
+  -X POST "MEILISEARCH_URL/indexes/yt-ssf/documents?primaryKey=id" ^
+  -H "Content-Type: application/x-ndjson" ^
+  -H "Authorization: Bearer barryallen@16" ^
+  --data-binary @extract.jsonl
 ```
 next
 ```
