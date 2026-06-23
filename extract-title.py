@@ -2,6 +2,7 @@ import yt_dlp
 import json
 from tqdm import tqdm
 from yt_dlp.utils import DownloadError, ExtractorError
+import time
 
 
 class IgnoreLogger:
@@ -47,6 +48,7 @@ def extract_vid_info():
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         for video_id in tqdm(video_ids, desc="Processing video id", unit="video"):
+            time.sleep(5)
             try:
                 info = ydl.extract_info(
                     url=f"https://youtube.com/watch?v={video_id}", download=False
@@ -64,6 +66,7 @@ def extract_vid_info():
                 tqdm.write(f"download error on video id {video_id} - {str(e)}")
                 video_ids.remove(video_id)
                 continue
+
     print(f"Processed {len(video_ids)} video_ids and written results to {OUT_FILENAME}")
 
 
