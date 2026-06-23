@@ -68,7 +68,7 @@ def extract_vid_info():
                 video_ids.remove(video_id)
                 continue
 
-    print(f"Processed {len(video_ids)} video_ids and written results to {OUT_FILENAME}")
+    print(f"Processed {len(video_ids)} video_ids and written results to {OUT_FILEPATH}")
 
 
 banner = """
