@@ -1,5 +1,5 @@
 ### YT-SSF
-![image](./static/banner.png)                         
+![alt text](static/terminal.png)                    
 yt-ssf (youtube Search Subscription Feed) can be used to search through your subscription feed for specific keyword.
 it uses yt-dlp to extract all the video_ids from your `https://youtube.com/subscription/feed`. but since your subscription feed is private to you, you need to pass yt cookie to get all the video ids in your subscription feed. after retrieving the video ids, you can extract the videos id info with or without cookie. 
 - without cookie, 300 videos info can be extracted / hour. (ie yt sees you as a guest user)
@@ -28,5 +28,24 @@ COOKIE_FILEPATH ="./input/youtube-netscape-cookie.txt"
 ```
 7. run `python3 extraction-code/extract-videoids.py`, which will extract all the video ids in your subscription feed and stores it in `extracted-code/input/subs_feed_video_ids.txt`
 8. run `python3 extraction-code/extract-info.py`, which will extract all the info of the video ids so that we can build a searchable database with it.
-9. setup meilisearch with the resulting jsonl dataset and replace the meilisearch url enpoint in the index.html
-10. host the website and search for what you need in subscription feed at lighting speed.
+9. setup meilisearch with the resulting jsonl dataset and 
+```
+# Launch Meilisearch
+./meilisearch --master-key="barryallen@16"
+```
+replace `barryallen@16` with your preferred masterkey .
+```
+cd extraction-code\output
+curl ^
+  -X POST 'MEILISEARCH_URL/indexes/movies/documents?primaryKey=id' ^
+  -H 'Content-Type: application/x-ndjson' ^
+  -H 'Authorization: Bearer barryallen@16' ^
+  --data-binary @extract.json
+```
+next
+```
+curl ^
+  -X GET "MEILISEARCH_URL/tasks/0" ^
+  -H "Authorization: Bearer barryallen@16"
+```
+replace the meilisearch url enpoint in the index.html. then host the website and search for what you need in subscription feed at lighting speed.

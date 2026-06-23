@@ -15,7 +15,7 @@
     import { Meilisearch } from "https://www.unpkg.com/meilisearch";
 
     const client = new Meilisearch({
-      host: "http://localhost:7700", // Added http:// for browser compatibility
+      host: "http://129.159.226.162:7700", // Added http:// for browser compatibility
       apiKey: "barryallen@16",
     });
 
@@ -37,7 +37,6 @@
 
         // Render the results
         renderResults(response.hits);
-        console.log(response.hits);
       } catch (error) {
         console.error("Meilisearch Error:", error);
         resultsContainer.innerHTML = `<p class="text-red-500 text-center col-span-full">Error connecting to search engine.</p>`;
@@ -61,7 +60,7 @@
             ${hit.title}
           </h2>
           <p class="text-neutral-400 text-sm line-clamp-3 mb-4">
-            ${JSON.stringify(hit).substring(0, 100) + "..."}
+            ${hit.description.substring(0, 100) + "..."}
           </p>
           <div class="text-xs text-neutral-600 mt-auto pt-2 border-t border-neutral-800">
             Channel: ${hit.uploader}
