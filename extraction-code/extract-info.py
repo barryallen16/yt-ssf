@@ -84,7 +84,10 @@ def extract_vid_info():
                 success_count += 1
             except (DownloadError, ExtractorError, Exception) as e:
                 if (
-                    "not available" in str(e) or "removed" in str(e)
+                    any(
+                        keyword in str(e)
+                        for keyword in ["removed", "confirm your age", "not available"]
+                    )
                 ) and video_id not in always_skip_video_ids:
                     with open(
                         "./input/always_skip_video_ids.txt", "a", encoding="utf-8"

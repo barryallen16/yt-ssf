@@ -27,25 +27,29 @@ We store the results to a ndjson or jsonlines file, as it is easier to validate 
 COOKIE_FILEPATH ="./input/youtube-netscape-cookie.txt"
 ```
 7. run `python3 extraction-code/extract-videoids.py`, which will extract all the video ids in your subscription feed and stores it in `extracted-code/input/subs_feed_video_ids.txt`
-8. run `python3 extraction-code/extract-info.py`, which will extract all the info of the video ids so that we can build a searchable database with it.
-9. setup meilisearch with the resulting jsonl dataset and 
+8. run `python3 extraction-code/scrapy-implementation.py`, which will extract all the info of the video ids so that we can build a searchable database with it.
+9. setup meilisearch and launch meilisearch in the devices you are going to use(vps or local) 
 ```
+# Install Meilisearch
+curl -L https://install.meilisearch.com | sh
 # Launch Meilisearch
+#replace `barryallen@16` with your preferred masterkey .
 ./meilisearch --master-key="barryallen@16"
 ```
-replace `barryallen@16` with your preferred masterkey .
+10. Then from the system having the repo, replace `MEILISEARCH_URL` with the actual url and run 
 ```
 cd extraction-code\output
 curl ^
   -X POST "MEILISEARCH_URL/indexes/yt-ssf/documents?primaryKey=id" ^
   -H "Content-Type: application/x-ndjson" ^
   -H "Authorization: Bearer barryallen@16" ^
-  --data-binary @extract.jsonl
-```
-next
-```
+  --data-binary @scrapy-extract.jsonl
 curl ^
   -X GET "MEILISEARCH_URL/tasks/0" ^
   -H "Authorization: Bearer barryallen@16"
 ```
-replace the meilisearch url enpoint in the index.html. then host the website and search for what you need in subscription feed at lighting speed.
+also rememeber to replace the meilisearch url enpoint in the index.html. then host the website and search for what you need in subscription feed at lighting speed.
+
+## Lesson
+- i first used `yt-dlp` library to scarpe the video infos such as thumbnail, title, channel name, video description. but this was too slow; rate limiting allowed only 300 videos to be scrape per day. that too, i would have to wait 5 secs per video so that i don't get banned.it would take almost 58 days to scrape my 17,599 sub feed videos, considering the 300 video rate limit/per. making this method infeasible.
+- then i implemented the logic in `scrapy` library, and it took 40 mins to completely scrape my 17,599 sub feed videos.

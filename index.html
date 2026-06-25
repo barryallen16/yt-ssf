@@ -55,7 +55,9 @@
         .map(
           (hit) => `
           <a href="https://youtube.com/watch?v=${hit.id}" target="_blank">
+            
         <div class="bg-[#1a1a1a] border border-neutral-800 rounded-lg p-5 hover:border-neutral-600 transition duration-150 ">
+          <img src="${hit.thumbnail_url}" alt="thumbnail" class="h-48 w-[95%] object-cover rounded-lg>
           <h2 class="text-xl font-semibold text-white mb-2">
             ${hit.title}
           </h2>
