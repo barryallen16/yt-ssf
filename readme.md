@@ -1,7 +1,8 @@
 ### YT-SSF
 ![alt text](static/web-image.png)                   
 yt-ssf (youtube Search Subscription Feed) can be used to search through your subscription feed for specific keyword.
-it uses yt-dlp to extract all the video_ids from your `https://youtube.com/subscription/feed`. but since your subscription feed is private to you, you need to pass yt cookie to get all the video ids in your subscription feed. after retrieving the video ids, you can extract the videos id info (such as title, description, channel name, thumbnail_url) using `scrapy` library
+it uses yt-dlp to extract all the video_ids from your `https://youtube.com/subscription/feed`. but since your subscription feed is private to you, you need to pass yt cookie to get all the video ids in your subscription feed. after retrieving the video ids, you can extract the videos id info (such as title, description, channel name, thumbnail_url) using `scrapy` library.
+you can demo this at [link](https://barryallen16.github.io/yt-ssf/) which searches through my subscription feed videos
 
 ## Why extract the video info?
 By extracting the video info such as : title, description, channel name, thumbnail_url along with the video id , We can build a lighting fast searchable self hosted database via meilisearch. 
@@ -33,7 +34,7 @@ python3 extraction-code/start-fresh.py
 8. then replace `youtube-netscape-cookie.txt` with cookie file name you saved it as and run. 
 remove -v argument if you dont want to see progress.
 ```bash
-yt-dlp -v --cookies extraction-code/input/youtube-netscape-cookie.txt --flat-playlist --print id "https://www.youtube.com/feed/subscriptions" > extraction-code/input/subs_feed_video_ids_v2.txt
+yt-dlp -v --cookies extraction-code/input/youtube-netscape-cookie.txt --flat-playlist --print id "https://www.youtube.com/feed/subscriptions" > extraction-code/input/subs_feed_video_ids.txt
 ```
 9. activate virtual env, install requirements and run scarpy spider script 
 ```
@@ -67,7 +68,31 @@ curl ^
   -H "Authorization: Bearer barryallen@16"
 ```
 also rememeber to replace the meilisearch url enpoint in the index.html. then host the website and search for what you need in subscription feed at lighting speed.
+## Updating 
+you would have to manually redo the all vidx extraction process again through `yt-dlp` so that you would have the updated all vidx over time.
+then we find the unprocessed vidx from the now updated all vidx file to perform the extraction.
+```bash
+yt-dlp -v --cookies extraction-code/input/youtube-netscape-cookie.txt --flat-playlist --print id "https://www.youtube.com/feed/subscriptions" > extraction-code/input/subs_feed_video_ids.txt
+``` 
+if the log shows the cookie is no longer valid. do the steps 2 - 7 and re-run the above command.
+then
+```
+# change the `PROCESS_UNPROCESSED` to `True` in extraction-code/scrapy-implementation.py
+uv run extraction-code/scrapy-implementation.py
+```
+and update the meilisearch 
+```
+cd extraction-code\output
 
+curl \
+  -X POST "MEILISEARCH_URL/indexes/yt-ssf/documents?primaryKey=id" \
+  -H "Content-Type: application/x-ndjson" \
+  -H "Authorization: Bearer barryallen@16" \
+  --data-binary @scrapy-extract.jsonl
+  curl ^
+    -X GET "MEILISEARCH_URL/tasks/0" ^
+    -H "Authorization: Bearer barryallen@16"
+```
 ## Hosting
 When you fork this repo and host the html in github pages. you cant make requests to http meilisearch endpoint url (Meilisearch doesn't natively handle SSL certificate generation and runs in http), as github pages uses https and you would get cors error.
 ### Solution 

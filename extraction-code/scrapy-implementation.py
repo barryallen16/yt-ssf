@@ -1,11 +1,17 @@
 import scrapy
+from pathlib import Path
+PARENT_DIR = Path(__file__).parent
+INPUT_DIR = PARENT_DIR / "input"
 
+PROCESS_UNPROCESSED = False
+
+INPUT_FILE_PATH = INPUT_DIR / "unprocessed_vidx.txt" if PROCESS_UNPROCESSED else INPUT_DIR / "subs_feed_video_ids.txt"
 
 class ytSSF_Spider(scrapy.Spider):
     name = "yt-ssf"
     start_urls = []
     base_url = "https://www.youtube.com/watch?v="
-    with open("./input/subs_feed_video_ids.txt", "r", encoding="utf-16") as in_file:
+    with open(INPUT_FILE_PATH, "r", encoding="utf-8") as in_file:
         for line in in_file:
             if line.strip():
                 video_url = base_url + line.strip()
