@@ -84,6 +84,19 @@
         searchIndex(e.target.value, resultsContainer);
       });
 
+      // Keyboard shortcut listener (Ctrl+K / Cmd+K to focus, Esc to unfocus)
+      document.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+          e.preventDefault(); // Prevent default browser search behavior
+          searchInput.focus();
+          searchInput.select(); // Selects existing search text for easy typing
+        } else if (e.key === "Escape") {
+          if (document.activeElement === searchInput) {
+            searchInput.blur();
+          }
+        }
+      });
+
       const defaultQuery = ""; 
       if (defaultQuery) {
         searchInput.value = defaultQuery;
@@ -105,7 +118,7 @@
         <input
           id="searchInput"
           type="text"
-          placeholder="Search for videos, topics, or OnePlus..."
+          placeholder="Search for videos, topics, or OnePlus... (Ctrl+K)"
           class="w-full bg-[#1a1a1a] border border-neutral-800 text-neutral-100 rounded-full py-3.5 pl-12 pr-6 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
         />
       </div>
