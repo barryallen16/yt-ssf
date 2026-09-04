@@ -83,15 +83,21 @@ uv run extraction-code/scrapy-implementation.py
 and update the meilisearch 
 ```
 cd extraction-code\output
-
+# replace \ with ^ if using cmd, \ is for bash shell
 curl \
   -X POST "MEILISEARCH_URL/indexes/yt-ssf/documents?primaryKey=id" \
   -H "Content-Type: application/x-ndjson" \
   -H "Authorization: Bearer barryallen@16" \
   --data-binary @scrapy-extract.jsonl
-  curl ^
-    -X GET "MEILISEARCH_URL/tasks/0" ^
+  curl \
+    -X GET "MEILISEARCH_URL/tasks/0" \
     -H "Authorization: Bearer barryallen@16"
+```
+To check the total number of documents (data count) in your Meilisearch index (yt-ssf)
+```
+ curl \
+  -X GET "https://adhi.isroot.in/indexes/yt-ssf/stats" \
+  -H "Authorization: Bearer barryallen@16"
 ```
 ## Hosting
 When you fork this repo and host the html in github pages. you cant make requests to http meilisearch endpoint url (Meilisearch doesn't natively handle SSL certificate generation and runs in http), as github pages uses https and you would get cors error.
