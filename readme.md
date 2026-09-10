@@ -99,10 +99,55 @@ To check the total number of documents (data count) in your Meilisearch index (y
   -X GET "https://adhi.isroot.in/indexes/yt-ssf/stats" \
   -H "Authorization: Bearer barryallen@16"
 ```
+## Playlists & courses
+along with the videos, you can also extract all the playlists and courses links (with title) from every channel you are subscribed to. and also the total time and views of each playlist/course.
+1. get all the channel ids from your subscriptions feed and save it. 
+```bash
+yt-dlp --cookies-from-browser chrome --flat-playlist --print uploader_id "https://www.youtube.com/feed/channels" > extraction-code/input/sub-channels.txt
+```
+2. then run the channel playlists script, which goes through each channel and stores the playlists and courses links separately. 
+```
+uv run extraction-code/extract-channel-playlists.py
+```
+this writes to `extraction-code/output/channel-playlists.jsonl` and `extraction-code/output/channel-courses.jsonl`. if a channel has no playlists or courses tab, yt-dlp will log an error and move on. safe to ignore.
+3. then run the enrich script to calculate the total time, video count and playlist views of each playlist/course. 
+```
+uv run extraction-code/enrich-playlist-stats.py
+```
+this adds `total_duration_seconds`, `total_duration_text` (HH:MM:SS), `video_count` and `playlist_views` (the playlist page's own views, not summed video views) to the same jsonl files. rerun it anytime for new playlists, it skips what is already done. use `--limit 3` to test on 3 playlists first. use `--mode backfill` to fill in the playlist `thumbnail_url` and `channel_name` needed for the website cards.
+4. upload the playlists and courses to meilisearch. replace `MEILISEARCH_URL` with the actual url and run 
+```
+cd extraction-code\output
+curl ^
+  -X POST "MEILISEARCH_URL/indexes/yt-playlists/documents?primaryKey=id" ^
+  -H "Content-Type: application/x-ndjson" ^
+  -H "Authorization: Bearer barryallen@16" ^
+  --data-binary @channel-playlists.jsonl
+curl ^
+  -X POST "MEILISEARCH_URL/indexes/yt-courses/documents?primaryKey=id" ^
+  -H "Content-Type: application/x-ndjson" ^
+  -H "Authorization: Bearer barryallen@16" ^
+  --data-binary @channel-courses.jsonl
+```
+5. make duration and views sortable on the website. use `PATCH` here, `PUT` on `/settings` gives 405 through the caddy proxy.
+```
+curl ^
+  -X PATCH "MEILISEARCH_URL/indexes/yt-playlists/settings" ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer barryallen@16" ^
+  --data "{\"sortableAttributes\": [\"total_duration_seconds\", \"playlist_views\", \"video_count\"]}"
+curl ^
+  -X PATCH "MEILISEARCH_URL/indexes/yt-courses/settings" ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer barryallen@16" ^
+  --data "{\"sortableAttributes\": [\"total_duration_seconds\", \"playlist_views\", \"video_count\"]}"
+```
+6. open the website and use the Videos / Playlists / Courses buttons above the results. playlist and course cards show the thumbnail with video count on the left and total time on the bottom right. a sort dropdown (longest, shortest, most viewed) appears on the playlists and courses tabs.
+
 ## Hosting
 When you fork this repo and host the html in github pages. you cant make requests to http meilisearch endpoint url (Meilisearch doesn't natively handle SSL certificate generation and runs in http), as github pages uses https and you would get cors error.
 ### Solution 
-- create a reverse proxy using caddy - [link]() in the vps you are self hosting meilisearch. 
+- create a reverse proxy using caddy - [link](https://caddyserver.com/docs/install) in the vps you are self hosting meilisearch. 
 - you would also need a registered domain or subdomain. you can obtain a free subdomain in [isroot.in](https://isroot.in/)
 - open port 80 and 443 for http and https endpoints in your vps.
 - after setting up your reverse proxy with caddy, you can check status by running

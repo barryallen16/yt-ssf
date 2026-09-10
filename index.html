@@ -19,7 +19,13 @@
       apiKey: "barryallen@16",
     });
 
-    const index = client.index("yt-ssf");
+    const indexes = {
+      videos: client.index("yt-ssf"),
+      playlists: client.index("yt-playlists"),
+      courses: client.index("yt-courses"),
+    };
+    let activeTab = "videos";
+    let activeSort = [];
 
     // Main search function (called on input change)
     async function searchIndex(query, resultsContainer) {
@@ -29,8 +35,9 @@
       }
 
       try {
-        const response = await index.search(query, {
-          limit: 100 
+        const response = await indexes[activeTab].search(query, {
+          limit: 100,
+          ...(activeSort.length ? { sort: activeSort } : {}),
         });
 
         // Render the results
@@ -50,8 +57,12 @@
 
       // Generate HTML for each hit
       resultsContainer.innerHTML = hits
-        .map(
-          (hit) => `
+        .map((hit) => (activeTab === "videos" ? videoCard(hit) : playlistCard(hit)))
+        .join("");
+    }
+
+    function videoCard(hit) {
+      return `
           <a href="https://youtube.com/watch?v=${hit.id}" target="_blank" class="group h-full">
             <div class="bg-[#1a1a1a] border border-neutral-800 rounded-xl p-4 hover:border-neutral-600 hover:scale-[1.02] transition duration-200 h-full flex flex-col justify-between">
               <div>
@@ -70,15 +81,66 @@
               </div>
             </div>
           </a>
-      `,
-        )
-        .join("");
+      `;
+    }
+
+    function playlistCard(hit) {
+      return `
+          <a href="${hit.url}" target="_blank" class="group h-full">
+            <div class="bg-[#1a1a1a] border border-neutral-800 rounded-xl p-4 hover:border-neutral-600 hover:scale-[1.02] transition duration-200 h-full flex flex-col justify-between">
+              <div>
+                <div class="relative mb-3">
+                  <img src="${hit.thumbnail_url}" alt="thumbnail" class="w-full aspect-video object-cover rounded-lg">
+                  <div class="absolute bottom-0 inset-x-0 flex items-center justify-between px-2 py-1 bg-black/70 rounded-b-lg text-[11px] text-white">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-list"></i>${hit.video_count} videos</span>
+                    <span>${hit.total_duration_text}</span>
+                  </div>
+                </div>
+                <h2 class="text-base font-semibold text-white mb-1.5 line-clamp-2 group-hover:text-blue-400 transition duration-150">
+                  ${hit.title}
+                </h2>
+              </div>
+              <div class="text-[11px] text-neutral-500 pt-2 border-t border-neutral-800/60 flex items-center gap-1.5 mt-auto">
+                <i class="fa-solid fa-circle-user text-neutral-600"></i>
+                <span class="truncate">${hit.channel_name || ""}</span>
+                ${hit.playlist_views != null ? `<span class="ml-auto shrink-0">${Number(hit.playlist_views).toLocaleString()} views</span>` : ""}
+              </div>
+            </div>
+          </a>
+      `;
     }
 
     // Initialize layout setup inside window load safely
     window.addEventListener("load", () => {
       const searchInput = document.getElementById("searchInput");
       const resultsContainer = document.getElementById("resultsContainer");
+      const sortSelect = document.getElementById("sortSelect");
+      const tabBtns = [...document.querySelectorAll(".tab-btn")];
+
+      const ACTIVE = "tab-btn px-5 py-2 rounded-full text-sm border border-blue-500 bg-[#2a2a2a] text-white transition";
+      const IDLE = "tab-btn px-5 py-2 rounded-full text-sm border border-neutral-800 bg-[#1a1a1a] text-neutral-400 hover:text-white transition";
+
+      function paintTabs() {
+        tabBtns.forEach((b) => (b.className = b.dataset.tab === activeTab ? ACTIVE : IDLE));
+        sortSelect.classList.toggle("hidden", activeTab === "videos");
+      }
+
+      tabBtns.forEach((b) =>
+        b.addEventListener("click", () => {
+          activeTab = b.dataset.tab;
+          activeSort = [];
+          sortSelect.value = "";
+          paintTabs();
+          if (searchInput.value.trim()) searchIndex(searchInput.value.trim(), resultsContainer);
+        }),
+      );
+
+      sortSelect.addEventListener("change", () => {
+        activeSort = sortSelect.value ? [sortSelect.value] : [];
+        if (searchInput.value.trim()) searchIndex(searchInput.value.trim(), resultsContainer);
+      });
+
+      paintTabs();
 
       searchInput.addEventListener("input", (e) => {
         searchIndex(e.target.value, resultsContainer);
@@ -111,7 +173,7 @@
         <img src="./static/banner.png" alt="yt-ssf banner" class="max-w-full h-auto max-h-32 object-contain" />
       </header>
 
-      <div class="relative w-full max-w-2xl mx-auto mb-12">
+      <div class="relative w-full max-w-2xl mx-auto mb-6">
         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <i class="fa fa-search text-neutral-500" aria-hidden="true"></i>
         </div>
@@ -121,6 +183,22 @@
           placeholder="Search for videos, topics, or OnePlus... (Ctrl+K)"
           class="w-full bg-[#1a1a1a] border border-neutral-800 text-neutral-100 rounded-full py-3.5 pl-12 pr-6 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
         />
+      </div>
+
+      <div class="flex items-center justify-center gap-2 mb-12">
+        <button data-tab="videos" class="tab-btn">Videos</button>
+        <button data-tab="playlists" class="tab-btn">Playlists</button>
+        <button data-tab="courses" class="tab-btn">Courses</button>
+        <select
+          id="sortSelect"
+          class="hidden bg-[#1a1a1a] border border-neutral-800 text-neutral-400 text-sm rounded-full px-4 py-2 outline-none focus:border-blue-500 transition"
+        >
+          <option value="">Relevance</option>
+          <option value="total_duration_seconds:desc">Longest first</option>
+          <option value="total_duration_seconds:asc">Shortest first</option>
+          <option value="playlist_views:desc">Most viewed</option>
+          <option value="playlist_views:asc">Fewest viewed</option>
+        </select>
       </div>
 
       <!-- FIXED: Altered layout structure to 4 columns on large screens -->
