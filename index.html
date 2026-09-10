@@ -4,11 +4,50 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>yt-ssf Search</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='black'/%3E%3Cpath d='M24 20h18v24' stroke='%2360a5fa' stroke-width='9' fill='none'/%3E%3C/svg%3E"
+    />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;700&display=swap"
+    />
+    <style>
+      body {
+        font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .ascii-banner {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        color: transparent;
+        background-image:
+          linear-gradient(100deg, transparent 42%, rgba(255, 255, 255, 0.95) 50%, transparent 58%),
+          linear-gradient(#60a5fa, #60a5fa);
+        background-size: 250% 100%, 100% 100%;
+        background-position: 180% 0, 0 0;
+        background-repeat: no-repeat;
+        -webkit-background-clip: text;
+        background-clip: text;
+        animation: ascii-sweep 7s ease-in-out 0.5s infinite;
+      }
+      @keyframes ascii-sweep {
+        0% { background-position: 180% 0, 0 0; }
+        30% { background-position: -80% 0, 0 0; }
+        100% { background-position: -80% 0, 0 0; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ascii-banner { animation: none; }
+      }
+      @supports not (background-clip: text) {
+        .ascii-banner { color: #60a5fa; background: none; }
+      }
+    </style>
   </head>
 
   <script type="module">
@@ -26,32 +65,47 @@
     };
     let activeTab = "videos";
     let activeSort = [];
+    let requestSeq = 0;
+    const HINT_HTML = `<p class="text-neutral-500 text-center col-span-full py-10">Type above to search...</p>`;
 
     // Main search function (called on input change)
-    async function searchIndex(query, resultsContainer) {
+    async function searchIndex(query, resultsContainer, resultMeta) {
       if (!query) {
-        resultsContainer.innerHTML = "";
+        resultsContainer.innerHTML = HINT_HTML;
+        if (resultMeta) resultMeta.textContent = "";
         return;
       }
+
+      const myRequest = ++requestSeq;
+      if (resultMeta) resultMeta.textContent = "Searching...";
 
       try {
         const response = await indexes[activeTab].search(query, {
           limit: 100,
           ...(activeSort.length ? { sort: activeSort } : {}),
         });
+        if (myRequest !== requestSeq) return; // stale response, a newer search is in flight
 
         // Render the results
-        renderResults(response.hits, resultsContainer);
+        renderResults(response, query, resultsContainer, resultMeta);
       } catch (error) {
+        if (myRequest !== requestSeq) return;
         console.error("Meilisearch Error:", error);
-        resultsContainer.innerHTML = `<p class="text-red-500 text-center col-span-full">Error connecting to search engine.</p>`;
+        if (resultMeta) resultMeta.textContent = "";
+        resultsContainer.innerHTML = `<div class="text-center col-span-full py-10">
+          <p class="text-red-500 mb-3">Error connecting to search engine. Your search was kept.</p>
+          <button data-retry class="px-5 py-2 rounded-full text-sm border border-neutral-700 bg-[#0c0c0c] text-white hover:border-neutral-500 transition">Retry</button>
+        </div>`;
       }
     }
 
     // Function to render the hits into the grid
-    function renderResults(hits, resultsContainer) {
+    function renderResults(response, query, resultsContainer, resultMeta) {
+      const hits = response.hits;
+      const total = response.estimatedTotalHits ?? hits.length;
+      if (resultMeta) resultMeta.textContent = total === 1 ? "1 result" : `${total.toLocaleString()} results`;
       if (hits.length === 0) {
-        resultsContainer.innerHTML = `<p class="text-neutral-500 text-center col-span-full py-10">No results found.</p>`;
+        resultsContainer.innerHTML = `<p class="text-neutral-500 text-center col-span-full py-10">No results for "${query}". Try fewer or different words.</p>`;
         return;
       }
 
@@ -63,8 +117,8 @@
 
     function videoCard(hit) {
       return `
-          <a href="https://youtube.com/watch?v=${hit.id}" target="_blank" class="group h-full">
-            <div class="bg-[#1a1a1a] border border-neutral-800 rounded-xl p-4 hover:border-neutral-600 hover:scale-[1.02] transition duration-200 h-full flex flex-col justify-between">
+          <a href="https://youtube.com/watch?v=${hit.id}" target="_blank" rel="noopener" class="group h-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+            <div class="bg-[#0c0c0c] border border-neutral-900 rounded-xl p-4 hover:border-neutral-600 hover:scale-[1.02] transition duration-200 h-full flex flex-col justify-between">
               <div>
                 <!-- FIXED: Changed to aspect-video for a clean, non-stretched layout -->
                 <img src="${hit.thumbnail_url}" alt="thumbnail" class="w-full aspect-video object-cover rounded-lg mb-3">
@@ -75,7 +129,7 @@
                   ${hit.description ? hit.description.substring(0, 80) + "..." : "No description available."}
                 </p>
               </div>
-              <div class="text-[11px] text-neutral-500 pt-2 border-t border-neutral-800/60 flex items-center gap-1.5 mt-auto">
+              <div class="text-[11px] text-neutral-500 pt-2 border-t border-neutral-900/60 flex items-center gap-1.5 mt-auto">
                 <i class="fa-solid fa-circle-user text-neutral-600"></i>
                 <span class="truncate">${hit.channel_name}</span>
               </div>
@@ -86,8 +140,8 @@
 
     function playlistCard(hit) {
       return `
-          <a href="${hit.url}" target="_blank" class="group h-full">
-            <div class="bg-[#1a1a1a] border border-neutral-800 rounded-xl p-4 hover:border-neutral-600 hover:scale-[1.02] transition duration-200 h-full flex flex-col justify-between">
+          <a href="${hit.url}" target="_blank" rel="noopener" class="group h-full rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+            <div class="bg-[#0c0c0c] border border-neutral-900 rounded-xl p-4 hover:border-neutral-600 hover:scale-[1.02] transition duration-200 h-full flex flex-col justify-between">
               <div>
                 <div class="relative mb-3">
                   <img src="${hit.thumbnail_url}" alt="thumbnail" class="w-full aspect-video object-cover rounded-lg">
@@ -100,7 +154,7 @@
                   ${hit.title}
                 </h2>
               </div>
-              <div class="text-[11px] text-neutral-500 pt-2 border-t border-neutral-800/60 flex items-center gap-1.5 mt-auto">
+              <div class="text-[11px] text-neutral-500 pt-2 border-t border-neutral-900/60 flex items-center gap-1.5 mt-auto">
                 <i class="fa-solid fa-circle-user text-neutral-600"></i>
                 <span class="truncate">${hit.channel_name || ""}</span>
                 ${hit.playlist_views != null ? `<span class="ml-auto shrink-0">${Number(hit.playlist_views).toLocaleString()} views</span>` : ""}
@@ -114,39 +168,79 @@
     window.addEventListener("load", () => {
       const searchInput = document.getElementById("searchInput");
       const resultsContainer = document.getElementById("resultsContainer");
+      const resultMeta = document.getElementById("resultMeta");
+      const clearBtn = document.getElementById("clearBtn");
       const sortSelect = document.getElementById("sortSelect");
       const tabBtns = [...document.querySelectorAll(".tab-btn")];
+      let debounceTimer = null;
 
-      const ACTIVE = "tab-btn px-5 py-2 rounded-full text-sm border border-blue-500 bg-[#2a2a2a] text-white transition";
-      const IDLE = "tab-btn px-5 py-2 rounded-full text-sm border border-neutral-800 bg-[#1a1a1a] text-neutral-400 hover:text-white transition";
+      function runSearch() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          searchIndex(searchInput.value.trim(), resultsContainer, resultMeta);
+        }, 250);
+      }
+
+      function syncClearBtn() {
+        clearBtn.classList.toggle("hidden", !searchInput.value);
+      }
+
+      const ACTIVE = "tab-btn px-5 py-2 rounded-full text-sm border border-blue-500 bg-[#2a2a2a] text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+      const IDLE = "tab-btn px-5 py-2 rounded-full text-sm border border-neutral-900 bg-[#0c0c0c] text-neutral-400 hover:text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
 
       function paintTabs() {
-        tabBtns.forEach((b) => (b.className = b.dataset.tab === activeTab ? ACTIVE : IDLE));
+        tabBtns.forEach((b) => {
+          const on = b.dataset.tab === activeTab;
+          b.className = on ? ACTIVE : IDLE;
+          b.setAttribute("aria-pressed", String(on));
+        });
         sortSelect.classList.toggle("hidden", activeTab === "videos");
       }
 
-      tabBtns.forEach((b) =>
-        b.addEventListener("click", () => {
-          activeTab = b.dataset.tab;
-          activeSort = [];
-          sortSelect.value = "";
-          paintTabs();
-          if (searchInput.value.trim()) searchIndex(searchInput.value.trim(), resultsContainer);
-        }),
-      );
+      function setTab(name) {
+        activeTab = name;
+        activeSort = [];
+        sortSelect.value = "";
+        paintTabs();
+        if (searchInput.value.trim()) searchIndex(searchInput.value.trim(), resultsContainer, resultMeta);
+      }
 
-      sortSelect.addEventListener("change", () => {
-        activeSort = sortSelect.value ? [sortSelect.value] : [];
-        if (searchInput.value.trim()) searchIndex(searchInput.value.trim(), resultsContainer);
-      });
+      function setSort(value) {
+        if (activeTab === "videos") activeTab = "playlists"; // sort only exists on playlist tabs
+        activeSort = value ? [value] : [];
+        sortSelect.value = value;
+        paintTabs();
+        if (searchInput.value.trim()) searchIndex(searchInput.value.trim(), resultsContainer, resultMeta);
+      }
+
+      tabBtns.forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+      sortSelect.addEventListener("change", () => setSort(sortSelect.value));
 
       paintTabs();
 
-      searchInput.addEventListener("input", (e) => {
-        searchIndex(e.target.value, resultsContainer);
+      searchInput.addEventListener("input", () => {
+        syncClearBtn();
+        runSearch();
       });
 
-      // Keyboard shortcut listener (Ctrl+K / Cmd+K to focus, Esc to unfocus)
+      clearBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        syncClearBtn();
+        searchIndex("", resultsContainer, resultMeta);
+        searchInput.focus();
+      });
+
+      resultsContainer.addEventListener("click", (e) => {
+        if (e.target.closest("[data-retry]")) {
+          searchIndex(searchInput.value.trim(), resultsContainer, resultMeta);
+        }
+      });
+
+      // Keyboard shortcut listener (Ctrl+K / Cmd+K to focus, Esc to unfocus,
+      // Alt+1..3 tabs, Alt+4..8 sort; Alt combos pass through Vimium untouched)
+      const TAB_ORDER = ["videos", "playlists", "courses"];
+      const SORT_VALUES = ["", "total_duration_seconds:desc", "total_duration_seconds:asc", "playlist_views:desc", "playlist_views:asc"];
       document.addEventListener("keydown", (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
           e.preventDefault(); // Prevent default browser search behavior
@@ -156,6 +250,13 @@
           if (document.activeElement === searchInput) {
             searchInput.blur();
           }
+        } else if (e.altKey && !e.ctrlKey && !e.metaKey) {
+          const m = /^(?:Digit|Numpad)([1-8])$/.exec(e.code || "");
+          if (!m) return;
+          e.preventDefault();
+          const n = Number(m[1]);
+          if (n <= 3) setTab(TAB_ORDER[n - 1]);
+          else setSort(SORT_VALUES[n - 4]);
         }
       });
 
@@ -167,10 +268,16 @@
     });
   </script>
 
-  <body class="bg-[#070708] text-neutral-100 min-h-screen font-mono">
+  <body class="bg-black text-neutral-100 min-h-screen">
     <div class="container mx-auto p-4 md:p-8">
-      <header class="mb-8 flex items-center justify-center gap-4">
-        <img src="./static/banner.png" alt="yt-ssf banner" class="max-w-full h-auto max-h-32 object-contain" />
+      <header class="mb-8 flex flex-col items-center gap-2">
+        <pre role="img" aria-label="YT-SSF" class="ascii-banner text-[7px] sm:text-sm md:text-base leading-tight select-none overflow-x-auto max-w-full">██╗   ██╗████████╗   ███████╗███████╗███████╗
+╚██╗ ██╔╝╚══██╔══╝   ██╔════╝██╔════╝██╔════╝
+ ╚████╔╝    ██║█████╗███████╗███████╗█████╗
+  ╚██╔╝     ██║╚════╝╚════██║╚════██║██╔══╝
+   ██║      ██║      ███████║███████║██║
+   ╚═╝      ╚═╝      ╚══════╝╚══════╝╚═╝</pre>
+        <p class="text-neutral-500 text-xs sm:text-sm">(youtube search subscription feed)</p>
       </header>
 
       <div class="relative w-full max-w-2xl mx-auto mb-6">
@@ -181,17 +288,26 @@
           id="searchInput"
           type="text"
           placeholder="Search for videos, topics, or OnePlus... (Ctrl+K)"
-          class="w-full bg-[#1a1a1a] border border-neutral-800 text-neutral-100 rounded-full py-3.5 pl-12 pr-6 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+          autocomplete="off"
+          class="w-full bg-[#0c0c0c] border border-neutral-900 text-neutral-100 rounded-full py-3.5 pl-12 pr-12 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
         />
+        <button
+          id="clearBtn"
+          aria-label="Clear search"
+          class="hidden absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-500 hover:text-white transition focus-visible:outline-2 focus-visible:outline-blue-500 rounded-full"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
       </div>
 
-      <div class="flex items-center justify-center gap-2 mb-12">
-        <button data-tab="videos" class="tab-btn">Videos</button>
-        <button data-tab="playlists" class="tab-btn">Playlists</button>
-        <button data-tab="courses" class="tab-btn">Courses</button>
+      <div class="flex flex-wrap items-center justify-center gap-2 mb-3">
+        <button data-tab="videos" class="tab-btn" aria-pressed="true" title="Videos (Alt+1)">Videos</button>
+        <button data-tab="playlists" class="tab-btn" aria-pressed="false" title="Playlists (Alt+2)">Playlists</button>
+        <button data-tab="courses" class="tab-btn" aria-pressed="false" title="Courses (Alt+3)">Courses</button>
         <select
           id="sortSelect"
-          class="hidden bg-[#1a1a1a] border border-neutral-800 text-neutral-400 text-sm rounded-full px-4 py-2 outline-none focus:border-blue-500 transition"
+          aria-label="Sort results"
+          class="hidden bg-[#0c0c0c] border border-neutral-900 text-neutral-400 text-sm rounded-full px-4 py-2 outline-none focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 transition"
         >
           <option value="">Relevance</option>
           <option value="total_duration_seconds:desc">Longest first</option>
@@ -200,6 +316,10 @@
           <option value="playlist_views:asc">Fewest viewed</option>
         </select>
       </div>
+
+      <p class="text-center text-[11px] text-neutral-600 mb-8">Alt+1/2/3 tabs · Alt+4–8 sort (Relevance, Longest, Shortest, Most, Fewest viewed)</p>
+
+      <p id="resultMeta" aria-live="polite" class="text-center text-xs text-neutral-500 h-4 mb-4"></p>
 
       <!-- FIXED: Altered layout structure to 4 columns on large screens -->
       <div id="resultsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
