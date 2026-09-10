@@ -94,7 +94,7 @@
         if (resultMeta) resultMeta.textContent = "";
         resultsContainer.innerHTML = `<div class="text-center col-span-full py-10">
           <p class="text-red-500 mb-3">Error connecting to search engine. Your search was kept.</p>
-          <button data-retry class="px-5 py-2 rounded-full text-sm border border-neutral-700 bg-[#0c0c0c] text-white hover:border-neutral-500 transition">Retry</button>
+          <button data-retry class="px-5 py-2 min-h-[44px] rounded-full text-sm border border-neutral-700 bg-[#0c0c0c] text-white hover:border-neutral-500 transition">Retry</button>
         </div>`;
       }
     }
@@ -185,8 +185,8 @@
         clearBtn.classList.toggle("hidden", !searchInput.value);
       }
 
-      const ACTIVE = "tab-btn px-5 py-2 rounded-full text-sm border border-blue-500 bg-[#2a2a2a] text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
-      const IDLE = "tab-btn px-5 py-2 rounded-full text-sm border border-neutral-900 bg-[#0c0c0c] text-neutral-400 hover:text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+      const ACTIVE = "tab-btn px-5 py-2 min-h-[44px] inline-flex items-center rounded-full text-sm border border-blue-500 bg-[#2a2a2a] text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+      const IDLE = "tab-btn px-5 py-2 min-h-[44px] inline-flex items-center rounded-full text-sm border border-neutral-900 bg-[#0c0c0c] text-neutral-400 hover:text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
 
       function paintTabs() {
         tabBtns.forEach((b) => {
@@ -268,7 +268,7 @@
     });
   </script>
 
-  <body class="bg-black text-neutral-100 min-h-screen">
+  <body class="bg-black text-neutral-100 min-h-screen overflow-x-clip">
     <div class="container mx-auto p-4 md:p-8">
       <header class="mb-8 flex flex-col items-center gap-2">
         <pre role="img" aria-label="YT-SSF" class="ascii-banner text-[7px] sm:text-sm md:text-base leading-tight select-none overflow-x-auto max-w-full">██╗   ██╗████████╗   ███████╗███████╗███████╗
@@ -294,7 +294,7 @@
         <button
           id="clearBtn"
           aria-label="Clear search"
-          class="hidden absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-500 hover:text-white transition focus-visible:outline-2 focus-visible:outline-blue-500 rounded-full"
+          class="hidden absolute inset-y-0 right-0 px-4 flex items-center text-neutral-500 hover:text-white transition focus-visible:outline-2 focus-visible:outline-blue-500 rounded-full"
         >
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
@@ -307,7 +307,7 @@
         <select
           id="sortSelect"
           aria-label="Sort results"
-          class="hidden bg-[#0c0c0c] border border-neutral-900 text-neutral-400 text-sm rounded-full px-4 py-2 outline-none focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 transition"
+          class="hidden bg-[#0c0c0c] border border-neutral-900 text-neutral-400 text-base rounded-full px-4 py-2 min-h-[44px] outline-none focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 transition"
         >
           <option value="">Relevance</option>
           <option value="total_duration_seconds:desc">Longest first</option>
