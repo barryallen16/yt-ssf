@@ -103,7 +103,7 @@ To check the total number of documents (data count) in your Meilisearch index (y
 along with the videos, you can also extract all the playlists and courses links (with title) from every channel you are subscribed to. and also the total time and views of each playlist/course.
 1. get all the channel ids from your subscriptions feed and save it. 
 ```bash
-yt-dlp --cookies-from-browser chrome --flat-playlist --print uploader_id "https://www.youtube.com/feed/channels" > extraction-code/input/sub-channels.txt
+yt-dlp --cookies extraction-code/input/youtube-netscape-cookie.txt --flat-playlist --print "%(channel_id)s" "https://www.youtube.com/feed/channels" > extraction-code/input/sub-channels.txt
 ```
 2. then run the channel playlists script, which goes through each channel and stores the playlists and courses links separately. 
 ```
